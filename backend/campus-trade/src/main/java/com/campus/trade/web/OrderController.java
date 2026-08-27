@@ -36,6 +36,14 @@ public class OrderController {
             body.listingId()));
     }
 
+    @GetMapping("/orders/mine")
+    public ApiResponse<org.springframework.data.domain.Page<OrderView>> listMine(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest req) {
+        return ApiResponse.ok(orders.listMine(AuthContext.requireUserId(req), page, size));
+    }
+
     @GetMapping("/orders/{id}")
     public ApiResponse<OrderView> get(@PathVariable long id, HttpServletRequest req) {
         return ApiResponse.ok(orders.get(id, AuthContext.requireUserId(req)));

@@ -13,6 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 @Service
 public class OrderService {
 
@@ -58,6 +62,12 @@ public class OrderService {
         o.setStatus(Order.Status.PAID_ESCROW);
         o.setPaidAt(Instant.now());
         return view(orders.save(o));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderView> listMine(long callerUserId, int page, int size) {
+        Pageable pg = PageRequest.of(Math.max(0, page - 1), Math.min(Math.max(1, size), 50));
+        return orders.findByBuyerIdOrSellerIdOrderByCreatedAtDesc(callerUserId, callerUserId, pg).map(this::view);
     }
 
     @Transactional(readOnly = true)

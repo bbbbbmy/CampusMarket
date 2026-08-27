@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>CampusMarket · 校园二手市场 v0.1 demo</title>
+<style>
+  :root { --c:#3b6ef5; --bg:#f5f7fb; --muted:#6b7280; --err:#c92a2a; --ok:#2b8a3e; --line:#e5e7eb; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,PingFang SC,sans-serif;background:var(--bg);color:#111}
+  header{background:#fff;border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-size:18px;margin:0;color:var(--c)}
+  header .spacer{flex:1}
+  header .status{font-size:13px;color:var(--muted)}
+  header .status b{color:#111}
+  nav.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);padding:0 16px}
+  nav.tabs button{background:none;border:none;padding:14px 20px;font-size:14px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+  nav.tabs button.active{color:var(--c);border-color:var(--c);font-weight:600}
+  main{padding:24px;max-width:960px;margin:0 auto}
+  section.panel{display:none}
+  section.panel.active{display:block}
+  .card{background:#fff;border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  h2{margin-top:0;font-size:16px;color:#111}
+  label{display:block;margin:8px 0 4px;font-size:13px;color:var(--muted)}
+  input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit}
+  textarea{resize:vertical;min-height:60px}
+  button.primary{background:var(--c);color:#fff;border:none;padding:10px 18px;border-radius:6px;font-size:14px;cursor:pointer;margin-top:10px}
+  button.primary:hover{background:#2c5dd1}
+  button.ghost{background:#fff;border:1px solid var(--line);color:#333;padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer}
+  button.row-action{margin-left:8px;padding:6px 10px;font-size:13px}
+  .err{color:var(--err);font-size:13px;margin-top:6px;min-height:1em}
+  .ok{color:var(--ok);font-size:13px;margin-top:6px;min-height:1em}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .listing{display:flex;align-items:center;padding:12px;border:1px solid var(--line);border-radius:6px;margin-bottom:8px;background:#fafafa}
+  .listing .grow{flex:1}
+  .listing .title{font-weight:600;margin-bottom:4px}
+  .listing .meta{font-size:12px;color:var(--muted)}
+  .listing .price{font-size:18px;color:var(--c);font-weight:600;margin-left:12px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:#dbe4ff;color:#3b6ef5;margin-right:4px}
+  .pill.escrow{background:#fff3bf;color:#8a6d00}
+  .pill.shipped{background:#d3f9d8;color:#2b8a3e}
+  .pill.confirmed{background:#e3fafc;color:#0c8599}
+  pre.kv{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#fafafa;padding:10px;border-radius:6px;border:1px solid var(--line);white-space:pre-wrap;margin:6px 0 0}
+  .inline-form{display:flex;gap:8px;align-items:end}
+  .inline-form > *{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📚 CampusMarket</h1>
+  <span class="spacer"></span>
+  <span class="status" id="statusBar">未登录</span>
+  <button class="ghost" id="logoutBtn" style="display:none">退出</button>
+</header>
+
+<nav class="tabs">
+  <button data-tab="auth" class="active">① 账户</button>
+  <button data-tab="browse">② 浏览市场</button>
+  <button data-tab="sell">③ 发布商品</button>
+  <button data-tab="me">④ 我的</button>
+</nav>
+
+<main>
+
+<!-- ========== 账户 ========== -->
+<section class="panel active" id="t-auth">
+  <div class="grid">
+    <div class="card">
+      <h2>注册</h2>
+      <form id="regForm">
+        <label>学校（仅 demo.edu 可注册）</label>
+        <select id="regSchoolId"></select>
+        <label>邮箱（必须 @demo.edu）</label>
+        <input id="regEmail" type="email" placeholder="alice@demo.edu" required>
+        <label>密码（≥8 位含字母 + 数字）</label>
+        <input id="regPassword" type="password" minlength="8" required>
+        <label>昵称（2-24 字）</label>
+        <input id="regNick" minlength="2" maxlength="24" required>
+        <button class="primary" type="submit">注册</button>
+        <div class="err" id="regErr"></div>
+        <div class="ok" id="regOk"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>登录</h2>
+      <form id="loginForm">
+        <label>邮箱</label>
+        <input id="loginEmail" type="email" required>
+        <label>密码</label>
+        <input id="loginPassword" type="password" required>
+        <button class="primary" type="submit">登录拿 JWT</button>
+        <div class="err" id="loginErr"></div>
+        <div class="ok" id="loginOk"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 浏览 ========== -->
+<section class="panel" id="t-browse">
+  <div class="card">
+    <h2>市场</h2>
+    <form id="searchForm" class="inline-form">
+      <div><label>关键词</label><input id="kw" placeholder="calculus"></div>
+      <div><label>分类</label><select id="catFilter"><option value="">全部</option></select></div>
+      <div><button class="primary" type="submit">搜索</button></div>
+    </form>
+    <div id="browseList" style="margin-top:14px"></div>
+  </div>
+</section>
+
+<!-- ========== 发布 ========== -->
+<section class="panel" id="t-sell">
+  <div class="card">
+    <h2>发布商品（卖家需先登录）</h2>
+    <form id="sellForm">
+      <label>分类</label>
+      <select id="sellCat"></select>
+      <label>标题（≤60 字）</label>
+      <input id="sellTitle" maxlength="60" required>
+      <label>描述（≤4000 字）</label>
+      <textarea id="sellDesc" maxlength="4000"></textarea>
+      <label>价格（分；最少 1 分，最大 100 万分）</label>
+      <input id="sellPrice" type="number" min="1" max="1000000" value="4500" required>
+      <label>成色</label>
+      <select id="sellCondition">
+        <option value="NEW">全新 NEW</option>
+        <option value="LIKE_NEW" selected>九成新 LIKE_NEW</option>
+        <option value="GOOD">八成新 GOOD</option>
+        <option value="FAIR">可接受 FAIR</option>
+      </select>
+      <button class="primary" type="submit">发布</button>
+      <div class="err" id="sellErr"></div>
+      <div class="ok" id="sellOk"></div>
+    </form>
+  </div>
+</section>
+
+<!-- ========== 我的 ========== -->
+<section class="panel" id="t-me">
+  <div class="card">
+    <h2>钱包</h2>
+    <button class="ghost" id="walletReload">刷新余额</button>
+    <button class="ghost row-action" id="topupBtn">+ 充值 5000 cents (dev)</button>
+    <pre class="kv" id="walletView">（未登录）</pre>
+  </div>
+  <div class="card">
+    <h2>收藏</h2>
+    <button class="ghost" id="favReload">刷新</button>
+    <div id="favList" style="margin-top:10px"></div>
+  </div>
+  <div class="card">
+    <h2>订单</h2>
+    <button class="ghost" id="ordersReload">刷新</button>
+    <div id="orderList" style="margin-top:10px"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ====== 简易状态 / API 包装 ======
+const state = { token: null, userId: null, schoolId: null, nick: null, schools: [], categories: [] };
+
+function setStatus() {
+  const s = document.getElementById('statusBar');
+  const lo = document.getElementById('logoutBtn');
+  if (state.token) {
+    s.innerHTML = `已登录 · <b>${state.nick || '?'}</b> (uid=${state.userId}, school=${state.schoolId})`;
+    lo.style.display = '';
+  } else {
+    s.textContent = '未登录';
+    lo.style.display = 'none';
+  }
+}
+
+async function api(path, opts = {}) {
+  const h = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (state.token) h['Authorization'] = `Bearer ${state.token}`;
+  const res = await fetch(path, { ...opts, headers: h });
+  const text = await res.text();
+  let body; try { body = JSON.parse(text); } catch { body = text; }
+  if (!res.ok) {
+    const msg = (body && body.message) || res.statusText;
+    const code = (body && body.code) || res.status;
+    throw new Error(`[${code}] ${msg}`);
+  }
+  return body && body.data !== undefined ? body.data : body;
+}
+
+// ====== 标签切换 ======
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('section.panel').forEach(p => p.classList.toggle('active', p.id === 't-' + b.dataset.tab));
+  if (b.dataset.tab === 'browse') refreshBrowse();
+  if (b.dataset.tab === 'sell') loadSellForm();
+  if (b.dataset.tab === 'me') refreshMe();
+});
+
+// ====== 退出 ======
+document.getElementById('logoutBtn').onclick = () => {
+  state.token = null; state.userId = null; state.schoolId = null; state.nick = null;
+  setStatus();
+};
+
+// ====== 注册 ======
+document.getElementById('regForm').onsubmit = async (e) => {
+  e.preventDefault();
+  document.getElementById('regErr').textContent = '';
+  document.getElementById('regOk').textContent = '';
+  try {
+    const d = await api('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        schoolId: +document.getElementById('regSchoolId').value,
+        email: document.getElementById('regEmail').value,
+        password: document.getElementById('regPassword').value,
+        nickname: document.getElementById('regNick').value
+      })
+    });
+    document.getElementById('regOk').textContent = `✅ 用户创建 (uid=${d.userId})`;
+  } catch (err) {
+    document.getElementById('regErr').textContent = err.message;
+  }
+};
+
+// ====== 登录 ======
+document.getElementById('loginForm').onsubmit = async (e) => {
+  e.preventDefault();
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('loginOk').textContent = '';
+  try {
+    const d = await api('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: document.getElementById('loginEmail').value,
+        password: document.getElementById('loginPassword').value
+      })
+    });
+    state.token = d.token; state.userId = d.userId; state.schoolId = d.schoolId;
+    state.nick = document.getElementById('loginEmail').value.split('@')[0];
+    document.getElementById('loginOk').textContent = '✅ 登录成功';
+    setStatus();
+    loadSellForm();
+  } catch (err) {
+    document.getElementById('loginErr').textContent = err.message;
+  }
+};
+
+// ====== 浏览市场 ======
+async function refreshBrowse() {
+  const list = document.getElementById('browseList');
+  list.innerHTML = '加载中…';
+  try {
+    const kw = document.getElementById('kw').value || '';
+    const cat = document.getElementById('catFilter').value;
+    const q = new URLSearchParams({ keyword: kw, page: 1, size: 20 });
+    if (cat) q.set('categoryId', cat);
+    const d = await api('/api/v1/listings?' + q.toString());
+    const rows = (d.content || []).map(item => `
+      <div class="listing">
+        <div class="grow">
+          <div class="title">${escapeHtml(item.title)}</div>
+          <div class="meta">
+            <span class="pill">ID #${item.id}</span>
+            <span class="pill">${item.condition}</span>
+            seller #${item.sellerId} · ${item.viewCount} views
+          </div>
+        </div>
+        <div class="price">¥${(item.priceCents / 100).toFixed(2)}</div>
+        <button class="ghost row-action" onclick="favListing(${item.id})">收藏</button>
+        <button class="primary row-action" onclick="buyListing(${item.id})">下单（担保）</button>
+      </div>`).join('') || '<div style="color:var(--muted)">（没有匹配的商品）</div>';
+    list.innerHTML = rows;
+  } catch (err) {
+    list.innerHTML = `<div class="err">${err.message}</div>`;
+  }
+}
+
+document.getElementById('searchForm').onsubmit = (e) => { e.preventDefault(); refreshBrowse(); };
+
+window.favListing = async (id) => {
+  try {
+    await api('/api/v1/favorites/' + id, { method: 'POST' });
+    alert('已收藏 #' + id + '（幂等）');
+  } catch (err) { alert(err.message); }
+};
+
+window.buyListing = async (id) => {
+  if (!state.token) { alert('请先登录'); document.querySelector('[data-tab="auth"]').click(); return; }
+  try {
+    const o = await api('/api/v1/orders', {
+      method: 'POST',
+      body: JSON.stringify({ listingId: id })
+    });
+    alert(`下单成功：order #${o.id}，状态 ${o.status}（钱已在担保池中）`);
+    refreshMe();
+  } catch (err) {
+    alert(err.message);
+  }
+};
+
+// ====== 发布 ======
+async function loadSellForm() {
+  if (!state.token) { document.getElementById('sellErr').textContent = '（需先登录）'; return; }
+  document.getElementById('sellErr').textContent = '';
+  const sel = document.getElementById('sellCat');
+  sel.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  // 同步浏览器的分类下拉
+  document.getElementById('catFilter').innerHTML = '<option value="">全部</option>' +
+    state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+document.getElementById('sellForm').onsubmit = async (e) => {
+  e.preventDefault();
+  document.getElementById('sellErr').textContent = '';
+  document.getElementById('sellOk').textContent = '';
+  try {
+    const d = await api('/api/v1/listings', {
+      method: 'POST',
+      body: JSON.stringify({
+        categoryId: +document.getElementById('sellCat').value,
+        title: document.getElementById('sellTitle').value,
+        description: document.getElementById('sellDesc').value,
+        priceCents: +document.getElementById('sellPrice').value,
+        condition: document.getElementById('sellCondition').value
+      })
+    });
+    document.getElementById('sellOk').textContent = `✅ 已发布 listing #${d.id}，状态 ${d.status}`;
+    document.getElementById('sellTitle').value = '';
+    document.getElementById('sellDesc').value = '';
+  } catch (err) {
+    document.getElementById('sellErr').textContent = err.message;
+  }
+};
+
+// ====== 我的 ======
+async function refreshMe() {
+  if (!state.token) {
+    document.getElementById('walletView').textContent = '（未登录）';
+    document.getElementById('favList').innerHTML = '';
+    document.getElementById('orderList').innerHTML = '';
+    return;
+  }
+  refreshWallet(); refreshFav(); refreshOrders();
+}
+
+document.getElementById('walletReload').onclick = refreshWallet;
+document.getElementById('favReload').onclick = refreshFav;
+document.getElementById('ordersReload').onclick = refreshOrders;
+document.getElementById('topupBtn').onclick = async () => {
+  try {
+    await api('/api/v1/wallet/top-up', { method: 'POST', body: JSON.stringify({ amountCents: 5000 }) });
+    alert('已充值 5000 cents');
+    refreshWallet();
+  } catch (err) { alert(err.message); }
+};
+
+async function refreshWallet() {
+  try {
+    const d = await api('/api/v1/wallet');
+    document.getElementById('walletView').textContent =
+      `balance = ${d.balanceCents} cents (¥${(d.balanceCents / 100).toFixed(2)})\nfrozen  = ${d.frozenCents} cents (¥${(d.frozenCents / 100).toFixed(2)})`;
+  } catch (err) { document.getElementById('walletView').textContent = err.message; }
+}
+
+async function refreshFav() {
+  const slot = document.getElementById('favList');
+  slot.innerHTML = '加载中…';
+  try {
+    const d = await api('/api/v1/favorites/mine?page=1&size=20');
+    const rows = (d.content || []).map(l => `<div class="listing"><div class="grow"><div class="title">${escapeHtml(l.title)}</div><div class="meta">¥${(l.priceCents / 100).toFixed(2)} · ${l.condition}</div></div></div>`).join('');
+    slot.innerHTML = rows || '（未收藏）';
+  } catch (err) { slot.innerHTML = `<div class="err">${err.message}</div>`; }
+}
+
+async function refreshOrders() {
+  const slot = document.getElementById('orderList');
+  slot.innerHTML = '加载中…';
+  try {
+    const d = await api('/api/v1/orders/mine?page=1&size=20');
+    if (!d.content || !d.content.length) { slot.innerHTML = '（还没有订单）'; return; }
+    const STATUS_PILL = {
+      CREATED:     '',
+      PAID_ESCROW: 'escrow',
+      SHIPPED:     'shipped',
+      CONFIRMED:   'confirmed',
+      CANCELLED:   '',
+      REFUNDING:   '',
+      REFUNDED:    ''
+    };
+    slot.innerHTML = d.content.map(o => {
+      const role = (o.buyerId === state.userId) ? 'buyer' : 'seller';
+      const pillCls = STATUS_PILL[o.status] || '';
+      let action = '';
+      if (role === 'seller' && o.status === 'PAID_ESCROW') action = `<button class="primary row-action" onclick="shipOrder(${o.id})">发货</button>`;
+      if (role === 'buyer' && o.status === 'SHIPPED')     action = `<button class="primary row-action" onclick="confirmOrder(${o.id})">确认收货</button>`;
+      if (o.status === 'CONFIRMED' && !o.reviewed)        action = `<button class="ghost row-action" onclick="reviewOrder(${o.id})">写评价</button>`;
+      return `
+        <div class="listing">
+          <div class="grow">
+            <div class="title">${escapeHtml(o.snapshotTitle)} <span class="pill ${pillCls}">${o.status}</span> <span class="pill">${role}</span></div>
+            <div class="meta">订单 #${o.id} · ¥${(o.priceCents / 100).toFixed(2)} · ${new Date(o.createdAt).toLocaleString()}</div>
+          </div>
+          ${action}
+        </div>`;
+    }).join('');
+  } catch (err) { slot.innerHTML = `<div class="err">${err.message}</div>`; }
+}
+
+window.shipOrder = async (id) => {
+  try { await api('/api/v1/orders/' + id + '/ship', { method: 'POST' }); refreshOrders(); }
+  catch (e) { alert(e.message); }
+};
+window.confirmOrder = async (id) => {
+  try {
+    await api('/api/v1/orders/' + id + '/confirm', { method: 'POST' });
+    // 顺手评价（demo 友好）
+    const r = prompt('写一句评价（5 星，请夸一下卖家）', 'good');
+    if (r) {
+      await api('/api/v1/reviews', { method: 'POST', body: JSON.stringify({ orderId: id, rating: 5, content: r }) });
+    }
+    refreshOrders();
+  } catch (e) { alert(e.message); }
+};
+window.reviewOrder = async (id) => {
+  const r = prompt('写一句评价（1-5 星文本）', 'good');
+  if (!r) return;
+  const stars = parseInt(prompt('星级 1..5', '5'), 10);
+  try {
+    await api('/api/v1/reviews', { method: 'POST', body: JSON.stringify({ orderId: id, rating: stars, content: r }) });
+    alert('已评价'); refreshOrders();
+  } catch (e) { alert(e.message); }
+};
+
+// ====== util ======
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+// ====== 启动：拉学校 / 分类 ======
+(async () => {
+  try {
+    state.schools = await api('/api/v1/schools');
+    state.categories = await api('/api/v1/categories');
+    document.getElementById('regSchoolId').innerHTML = state.schools
+      .map(s => `<option value="${s.id}">${s.name} (${s.domain})</option>`).join('');
+  } catch (e) { /* offline ok */ }
+  setStatus();
+  refreshBrowse();
+})();
+</script>
+</body>
+</html>
