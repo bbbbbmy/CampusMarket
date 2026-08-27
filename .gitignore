@@ -1,0 +1,47 @@
+### IDE / 编辑器 ###
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+
+### 构建产物 ###
+target/
+build/
+out/
+*.jar
+*.war
+*.ear
+
+### 日志 / 临时 ###
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
+### 本地配置 ###
+.env
+.env.local
+application-local.yml
+application-local.properties
+
+### Node / 前端 ###
+node_modules/
+dist/
+.cache/
+.parcel-cache/
+.vite/
+
+### Java / Maven ###
+mvnw
+mvnw.cmd
+.mvn/wrapper/maven-wrapper.jar
+
+### 依赖 / 数据库 ###
+*.h2.db
+*.mv.db
+*.trace.db
+hs_err_pid*.log

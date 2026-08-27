@@ -1,0 +1,34 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: campus-market
+  datasource:
+    url: jdbc:h2:mem:campus;DB_CLOSE_DELAY=-1;MODE=MySQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+
+# 业务参数
+campus:
+  jwt:
+    secret: campus-market-demo-secret-key-please-change-in-prod-32+
+    ttl-hours: 24
+  auth:
+    enabled: true
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    com.campus: INFO

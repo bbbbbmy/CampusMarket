@@ -1,0 +1,48 @@
+package com.campus.common.error;
+
+/**
+ * 全局错误码枚举。所有微服务共享同一命名空间；code 字符串同时用于
+ * spec 对齐（如 EMAIL_TAKEN / LISTING_NOT_AVAILABLE 等）。
+ */
+public enum ErrorCode {
+    // 通用
+    OK("OK", 200),
+    BAD_REQUEST("BAD_REQUEST", 400),
+    UNAUTHORIZED("UNAUTHORIZED", 401),
+    FORBIDDEN("FORBIDDEN", 403),
+    NOT_FOUND("NOT_FOUND", 404),
+    CONFLICT("CONFLICT", 409),
+    INVALID_CREDENTIALS("INVALID_CREDENTIALS", 401),
+    RATE_LIMITED("RATE_LIMITED", 429),
+    SCHOOL_DOMAIN_MISMATCH("SCHOOL_DOMAIN_MISMATCH", 422),
+    EMAIL_TAKEN("EMAIL_TAKEN", 409),
+    NICKNAME_INVALID("NICKNAME_INVALID", 422),
+    ACCOUNT_FROZEN("ACCOUNT_FROZEN", 403),
+    // listing
+    TOO_MANY_IMAGES("TOO_MANY_IMAGES", 422),
+    PRICE_OUT_OF_RANGE("PRICE_OUT_OF_RANGE", 422),
+    LISTING_NOT_FOUND("LISTING_NOT_FOUND", 404),
+    LISTING_NOT_AVAILABLE("LISTING_NOT_AVAILABLE", 409),
+    ILLEGAL_STATUS_TRANSITION("ILLEGAL_STATUS_TRANSITION", 409),
+    CROSS_SCHOOL_FORBIDDEN("CROSS_SCHOOL_FORBIDDEN", 403),
+    // trade
+    INSUFFICIENT_BALANCE("INSUFFICIENT_BALANCE", 422),
+    NOT_ORDER_SELLER("NOT_ORDER_SELLER", 403),
+    USE_REFUND("USE_REFUND", 409),
+    ILLEGAL_ORDER_TRANSITION("ILLEGAL_ORDER_TRANSITION", 409),
+    REVIEW_ALREADY_EXISTS("REVIEW_ALREADY_EXISTS", 409),
+    // wallet
+    WALLET_NOT_FOUND("WALLET_NOT_FOUND", 404),
+    WALLET_VERSION_CONFLICT("WALLET_VERSION_CONFLICT", 409);
+
+    private final String code;
+    private final int http;
+
+    ErrorCode(String code, int http) {
+        this.code = code;
+        this.http = http;
+    }
+
+    public String code() { return code; }
+    public int http() { return http; }
+}
