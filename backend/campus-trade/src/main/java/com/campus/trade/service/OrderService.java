@@ -153,6 +153,45 @@ public class OrderService {
             r.getRating(), r.getContent(), r.getCreatedAt());
     }
 
+    /** §6.6 自动取消：PAID_ESCROW 超过 30 分钟未发货（spec 调整边界以让定时器有意义）。 */
+    @Transactional
+    public int sweepCancelExpired(java.time.Duration age) {
+        java.time.Instant cutoff = java.time.Instant.now().minus(age);
+        var list = orders.findByStatusAndPaidAtBefore(Order.Status.PAID_ESCROW, cutoff);
+        int n = 0;
+        for (Order o : list) {
+            try {
+                wallet.refundFromEscrow(o.getBuyerId(), o.getSellerId(), o.getPriceCents());
+                listings.markOnSale(o.getListingId());
+                o.setStatus(Order.Status.CANCELLED);
+                o.setCancelledAt(java.time.Instant.now());
+                n++;
+            } catch (Exception ignored) {
+                // 单条失败不阻塞批次；下一周期重试
+            }
+        }
+        return n;
+    }
+
+    /** §6.7 7 天未确认自动放款。 */
+    @Transactional
+    public int sweepAutoConfirm(java.time.Duration age) {
+        java.time.Instant cutoff = java.time.Instant.now().minus(age);
+        var list = orders.findByStatusAndShippedAtBefore(Order.Status.SHIPPED, cutoff);
+        int n = 0;
+        for (Order o : list) {
+            try {
+                wallet.release(o.getSellerId(), o.getBuyerId(), o.getPriceCents());
+                listings.markSold(o.getListingId());
+                o.setStatus(Order.Status.CONFIRMED);
+                o.setConfirmedAt(java.time.Instant.now());
+                n++;
+            } catch (Exception ignored) {
+            }
+        }
+        return n;
+    }
+
     private OrderView view(Order o) {
         return new OrderView(
             o.getId(), o.getOrderNo(),

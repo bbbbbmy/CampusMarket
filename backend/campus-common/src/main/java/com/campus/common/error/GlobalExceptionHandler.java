@@ -44,8 +44,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleAny(Exception ex) {
+        // v0.1 debug: 暴露 root cause 短描述，便于错误调试；production 应改为脱敏 + 仅日志
+        Throwable root = ex;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        String msg = (root.getMessage() == null ? ex.getClass().getSimpleName() : root.getMessage());
+        if (msg.length() > 200) msg = msg.substring(0, 200);
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ApiResponse.fail("INTERNAL", ex.getClass().getSimpleName(), TraceContext.current()));
+            .body(ApiResponse.fail("INTERNAL", msg, TraceContext.current()));
     }
 }

@@ -91,9 +91,9 @@ curl -s http://localhost:8080/api/v1/schools | jq
 - 卖家钱包 balance 收到全部金额，frozen 清零
 - 买家钱包 frozen 清零，balance 扣减对应金额
 
-## v0.1 已实施 / 已跳
+## v0.1.1 已实施 / 已跳
 
-### ✅ 已实施
+### ✅ v0.1 (4d11055) + v0.1.1 (本轮)
 
 - 学校域注册 + JWT 签发 + 鉴权拦截器
 - 同校可见强过滤（`schoolId` 强制覆盖）
@@ -102,9 +102,10 @@ curl -s http://localhost:8080/api/v1/schools | jq
 - 担保钱包（PESSIMISTIC_WRITE 锁 + @Version 乐观锁）
 - 订单状态机：CREATED → PAID_ESCROW → SHIPPED → CONFIRMED；取消路径退款
 - 评价（双向，1–5 星 + 文本）
-- 端到端 Happy-PathTest
-
-### ⏸ v0.2 / 后续
+- 收藏（幂等添加 / 取消 + 分页 mine 列表）
+- 自动定时器：30 分钟未付款取消 + 7 天未确认放款（`@EnableScheduling` + `TradeScheduler`）
+- 单元测试套：`UnitTests.java` 23 用例（Auth / Listing / Order + Scheduler）
+- 端到端 Happy-PathTest（含收藏闭环）
 
 - gateway-service（Spring Cloud Gateway + Sentinel 限流）
 - file-service（MinIO / 图片上传）

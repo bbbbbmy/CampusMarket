@@ -72,4 +72,26 @@ public class ListingController {
         listings.offShelf(id, AuthContext.requireUserId(req), AuthContext.requireSchoolId(req));
         return ApiResponse.ok(null);
     }
+
+    @PostMapping("/favorites/{id}")
+    public ApiResponse<Void> favorite(@PathVariable long id, HttpServletRequest req) {
+        listings.favorite(AuthContext.requireUserId(req), id);
+        return ApiResponse.ok(null);
+    }
+
+    @DeleteMapping("/favorites/{id}")
+    public ApiResponse<Void> unfavorite(@PathVariable long id, HttpServletRequest req) {
+        listings.unfavorite(AuthContext.requireUserId(req), id);
+        return ApiResponse.ok(null);
+    }
+
+    @GetMapping("/favorites/mine")
+    public ApiResponse<Page<ListingView>> myFavorites(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest req) {
+        long uid = AuthContext.requireUserId(req);
+        long sid = AuthContext.requireSchoolId(req);
+        return ApiResponse.ok(listings.myFavorites(uid, sid, page, size));
+    }
 }

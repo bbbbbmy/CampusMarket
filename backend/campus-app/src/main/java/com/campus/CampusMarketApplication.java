@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * v0.1 单进程启动器：把 4 个业务模块（user / listing / trade / common）
@@ -26,6 +27,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.campus.listing.domain",
     "com.campus.trade.domain"
 })
+@EnableScheduling
 public class CampusMarketApplication {
 
     public static void main(String[] args) {

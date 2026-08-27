@@ -5,13 +5,18 @@ import com.campus.common.error.ErrorCode;
 import com.campus.common.listing.ListingApi;
 import com.campus.listing.domain.Category;
 import com.campus.listing.domain.CategoryRepository;
+import com.campus.listing.domain.Favorite;
+import com.campus.listing.domain.FavoriteRepository;
 import com.campus.listing.domain.Listing;
 import com.campus.listing.domain.ListingRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,10 +40,12 @@ public class ListingService implements ListingApi {
 
     private final ListingRepository listings;
     private final CategoryRepository categories;
+    private final FavoriteRepository favorites;
 
-    public ListingService(ListingRepository listings, CategoryRepository categories) {
+    public ListingService(ListingRepository listings, CategoryRepository categories, FavoriteRepository favorites) {
         this.listings = listings;
         this.categories = categories;
+        this.favorites = favorites;
     }
 
     @Transactional
@@ -161,6 +168,42 @@ public class ListingService implements ListingApi {
 
     public List<Category> categories() {
         return categories.findAllByOrderBySortOrderAsc();
+    }
+
+    /** §5.6 收藏 — 幂等。 */
+    @Transactional
+    public void favorite(long userId, long listingId) {
+        Favorite.Key key = new Favorite.Key(userId, listingId);
+        if (favorites.existsById(key)) return;
+        // 仅当 listing 属于当前用户学校（防止枚举）
+        Listing l = listings.findById(listingId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.LISTING_NOT_FOUND));
+        if (l.getSchoolId() == null) {
+            throw new BusinessException(ErrorCode.LISTING_NOT_FOUND);
+        }
+        Favorite f = new Favorite();
+        f.setUserId(userId);
+        f.setListingId(listingId);
+        favorites.save(f);
+    }
+
+    /** §5.6 取消收藏 — 幂等。 */
+    @Transactional
+    public void unfavorite(long userId, long listingId) {
+        favorites.deleteByUserIdAndListingId(userId, listingId);
+    }
+
+    /** §5.6 我的收藏列表 — 按收藏时间倒序，未返回的 listing 已被删时跳过。 */
+    @Transactional(readOnly = true)
+    public Page<ListingView> myFavorites(long userId, long currentSchoolId, int page, int size) {
+        Pageable pg = PageRequest.of(Math.max(0, page - 1), Math.min(Math.max(1, size), 50));
+        Page<Long> ids = favorites.findListingIdsByUserIdOrderByCreatedAtDesc(userId, pg);
+        if (ids.isEmpty()) return Page.empty();
+        // 直接查 db，按 currentSchoolId 强制过滤
+        List<Listing> rows = listings.findAllById(ids.getContent()).stream()
+            .filter(l -> l.getSchoolId().equals(currentSchoolId))
+            .toList();
+        return new PageImpl<>(rows.stream().map(this::view).toList(), pg, ids.getTotalElements());
     }
 
     private ListingView view(Listing l) {
