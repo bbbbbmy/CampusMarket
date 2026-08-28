@@ -1,0 +1,30 @@
+# Nacos profile 启用：R1 验证用
+# 用法： java -jar campus-market-gateway-*.jar --spring.profiles.active=nacos
+#
+# 假设 docker-compose.yml 已起来 Nacos (8848) + 4 个业务服务：
+#   docker compose -f deploy/docker-compose.yml up -d nacos mysql redis minio user-service listing-service trade-service file-service
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        namespace: public
+        username: nacos
+        password: nacos
+      config:
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        file-extension: yaml
+        username: nacos
+        password: nacos
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+
+# Sentinel 限流（v0.2.1 §B1 实施）
+# spring.cloud.sentinel.transport.dashboard = sentinel-dashboard:8080
+
+logging:
+  level:
+    com.alibaba.cloud.nacos: INFO
+    org.springframework.cloud.gateway.route: DEBUG

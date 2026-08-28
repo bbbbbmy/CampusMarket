@@ -1,0 +1,41 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: campus-market-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        # 单进程（default profile）下，路径直接转到 campus-app；R1 验证用 nacos profile
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**,/api/v1/users/**,/api/v1/schools
+        - id: listing-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/listings/**,/api/v1/categories,/api/v1/favorites/**
+        - id: trade-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/orders/**,/api/v1/wallet/**,/api/v1/reviews
+        - id: file-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/files/**
+
+campus:
+  gateway:
+    enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    com.alibaba.cloud.nacos: INFO
