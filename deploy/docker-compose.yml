@@ -1,0 +1,31 @@
+# CampusMarket 本地 docker-compose（v0.1.2 demo 用，单容器 + H2 in-memory）
+# 真正 R1 多服务版本详见 deploy/docker-compose.r1.yml（待 v0.2.x 实施时补）
+#
+# 用法：
+#   mvn -B -ntp -f backend/pom.xml -DskipTests install
+#   docker compose -f deploy/docker-compose.yml up -d
+#   浏览器打开 http://localhost:8080/
+#
+# 停服：
+#   docker compose -f deploy/docker-compose.yml down
+
+services:
+  campus-market:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ghcr.io/bbbbbmy/campus-market:latest
+    container_name: campus-market
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # v0.1.2 默认走 H2 in-memory；切 MySQL 时改下面两行
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:campus;DB_CLOSE_DELAY=-1
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70.0
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/v1/schools >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s

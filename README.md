@@ -43,6 +43,29 @@ curl -s http://localhost:8080/api/v1/schools | jq
 # 期望：{"code":"OK","message":"success","data":[{"id":1,"name":"Demo University","domain":"demo.edu"}],...}
 ```
 
+## Docker 一键启动
+
+```bash
+mvn -B -ntp -f backend/pom.xml -DskipTests install
+docker compose -f deploy/docker-compose.yml up -d
+# 浏览器打开 http://localhost:8080/
+```
+
+## 发布（GitHub Release + GHCR image）
+
+推送 tag 触发 GitHub Actions（自带 docker daemon），自动构建 + 推 image + 创建 Release：
+
+```bash
+git tag v0.1.2 && git push origin v0.1.2
+# 几分钟后：
+#   image:  ghcr.io/bbbbbmy/campus-market:v0.1.2  (also :latest)
+#   release: https://github.com/bbbbbmy/CampusMarket/releases/tag/v0.1.2
+#   jar:    campus-app-0.1.0-SNAPSHOT.jar （附在 release）
+```
+
+ghcr.io 镜像默认 private，去仓 Settings → Packages 改 public 才能 pull。
+CI 详细：每次 push / PR 都触发 `backend-ci` job 跑后端单测，提交前能看绿灯。
+
 ## OpenSpec / 设计文档
 
 设计与需求规范留在 [`bbbbbmy/vibecoding`](https://github.com/bbbbbmy/vibecoding) 仓的

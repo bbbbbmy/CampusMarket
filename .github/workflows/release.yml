@@ -1,0 +1,68 @@
+# Release：push tag 时自动构建 + 推 GHCR image + 创建 GitHub Release + 附 fat jar
+#
+# 用法：
+#   git tag v0.1.2 && git push origin v0.1.2
+#   几分钟后：
+#     - image:    ghcr.io/bbbbbmy/campus-market:v0.1.2  (also :latest)
+#     - release:  https://github.com/bbbbbmy/CampusMarket/releases/tag/v0.1.2
+#     - 附 jar:   campus-app-0.1.0-SNAPSHOT.jar
+#
+# 注意：ghcr.io 镜像默认 private。GitHub 仓 Settings → Packages → 改 visibility 为 public 才能被 pull。
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Cache Maven repo
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Run tests
+        run: mvn -B -ntp -f backend/pom.xml -pl campus-app test
+
+      - name: Build fat jar (spring-boot:repackage)
+        run: mvn -B -ntp -f backend/pom.xml -DskipTests install
+
+      - name: Build & push Docker image (GHCR)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/campus-market:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/campus-market:latest
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            backend/campus-app/target/campus-app-0.1.0-SNAPSHOT.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

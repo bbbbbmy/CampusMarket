@@ -1,0 +1,17 @@
+# 不打包到 docker build context 的内容（避免 context 过大 + 敏感信息泄漏）
+.git
+.github
+.idea
+.vscode
+*.iml
+target
+node_modules
+docs
+scripts
+deploy
+README.md
+LICENSE
+*.md
+.DS_Store
+*.log
+logs
