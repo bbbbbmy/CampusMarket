@@ -91,6 +91,38 @@ curl -s http://localhost:8080/api/v1/schools | jq
 - 卖家钱包 balance 收到全部金额，frozen 清零
 - 买家钱包 frozen 清零，balance 扣减对应金额
 
+## 演示账号
+
+本地首次启动时，`campus-user` 模块的 `DataSeed` 自动创建一个学校：
+
+| 字段 | 值 |
+|---|---|
+| 学校名 | Demo University |
+| domain（邮箱后缀） | `@demo.edu` |
+
+所有用户邮箱必须 **以 `@demo.edu` 结尾**（验证邮箱域跟所选学校匹配）。注册时密码必须 **≥8 位且含字母 + 数字**；昵称 2–24 字。
+
+### 推荐 demo 账号（两角色）
+
+```
+卖家 Alice（发书 / 收钱）：   email=alice@demo.edu   password=alice12345   nickname=Alice
+买家 Bob  （下单 / 评价）：  email=bob@demo.edu     password=bobpass1234  nickname=Bob
+```
+
+闭环步骤：
+
+1. 浏览器打开 http://localhost:8080/ 进入 UI
+2. 用 Alice 账号登录 → “发布商品” tab 发书 “高数教材 4500 cents”
+3. 注销 → 用 Bob 账号登录 → “充值 +5000 cents” → “浏览市场” 下单
+4. 切回 Alice → “我的 → 订单” → 「发货」
+5. 切回 Bob  → “我的 → 订单” → 「确认收货（受手续费提醒后写评价）」
+6. Bob 钱包 frozen=0、balance=500c；Alice 钱包 balance=4500c
+
+### README 与 UI 代码同步
+
+UI HTML 单文件：`backend/campus-app/src/main/resources/static/index.html`
+Spring Boot 默认从 `static/` 路径 serve；`http://localhost:8080/` 即页面入口。
+
 ## v0.1.1 已实施 / 已跳
 
 ### ✅ v0.1 (4d11055) + v0.1.1 (本轮)
